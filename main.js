@@ -14,6 +14,7 @@
     var color1 = '#ff95c8';
     var color2 = '#5194f8';
     var color3 ='#969696';
+    
     // Green theme colors for Prank
     var colorPrank = '#4CAF50';      // Vibrant Green background
     var colortxtPrank = '#1B5E20';   // Dark Green text
@@ -133,3 +134,163 @@
     };
 
     function confetti_effect() {
+        if(triggered==true) {
+            return;
+        }
+        if (!nosound) {
+            soundHandle.volume=0.5;
+            soundHandle.play().catch(function(e) {});
+        }
+        triggered=true;
+        var duration = 10 * 1000;
+        var end = Date.now() + duration;
+        var defaults = { startVelocity: 10, spread: 360, ticks: 70, zIndex: 0 };
+        var particleCount = 5 ;
+        (function frame() {
+            confetti({...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }, colors: ['#FFFFFF']});
+            confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },colors: ['#FFFFFF']});
+
+            if (Date.now() < end) {
+                requestAnimationFrame(frame);
+                return;
+            }
+            $("#resetbutton").show();
+        }());
+    };
+    
+    /**
+     * Reset all scratchers
+     */
+    function onResetClicked(scratchers) {
+        var i;
+        pct1=0;
+        pct2=0;
+        pct3=0;
+        pct4=0;
+        pct5=0;
+        pct6=0;
+        CrispyToast.toasts=[];
+        $("#scratcher3Pct").hide();
+        $("#resetbutton").hide();
+        for (i = 0; i < scratchers.length; i++) {
+            if (scratchers[i] && scratchers[i].reset) {
+                scratchers[i].reset();
+            }
+        }
+       
+        $('#boy').text('Boy');
+        $('#boy').css('color',colortxt2);
+        $('#or').show();
+        $('#girl').show();
+        
+        document.getElementsByTagName("body")[0].style.backgroundColor = "#ffffff";
+        document.getElementsByTagName("body")[0].style.backgroundImage = 'url(images/background.jpg)';
+
+        $('#H3').show();
+        $('#H4').show();
+        triggered = false;
+        soundHandle.pause();
+        soundHandle.currentTime = 0;    
+        return false;
+    };
+    
+    function initPage() {
+        var scratcherLoadedCount = 0;
+        var scratchers = [];
+        var i, i1;
+        
+        surname = params.get('surname');
+        if (surname !=null && surname.replace(/\s/g, '').length) {
+            $("#baby").text('Baby ' + surname+'!');
+        } else {
+            $("#baby").text('the Baby!');
+            surname="the";
+            document.getElementById('surname').style.fontWeight="normal";
+        }
+
+        document.getElementById('surname').innerHTML= surname;
+        document.getElementById('id01').style.display='block';
+
+        $('.nosoundbtn').on("click", function (e) {
+            document.getElementById('id01').style.display='none';
+            nosound=true;
+        });
+
+        $('.withsoundbtn').on("click", function (e) {
+            document.getElementById('id01').style.display='none';
+            nosound=false;
+            if (soundHandle.currentTime!=0) {return;}
+                soundHandle = document.getElementById('soundHandle');  
+                soundHandle.autoplay = true;
+                soundHandle.muted=false;
+                soundHandle.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
+                soundHandle.src = 'audio/celebrate.mp3';
+                soundHandle.play().catch(function(err) {});
+                soundHandle.pause();
+        });
+
+        document.addEventListener(
+            "visibilitychange",
+            function(evt) {
+              if (document.visibilityState != "visible") {
+                soundHandle.pause();
+                soundHandle.currentTime=0;
+              }
+            },
+            false,
+        );
+        
+        document.getElementById("resetbutton").style.backgroundColor = colortxt;
+
+        function onScratcherLoaded(ev) {
+            scratcherLoadedCount++;
+            $("table1").width($(window).width());
+            if (scratcherLoadedCount >= scratchers.length) {
+                $('#resetbutton').on('click', function() {
+                    onResetClicked(scratchers);
+                });
+            }
+        };
+    
+        var scratchers = new Array(9);
+    
+        for (i = 0; i < scratchers.length; i++) {
+            i1 = i + 1;
+            scratchers[i] = new Scratcher('scratcher' + i1);
+            
+            // Fallback image handling
+            var bgImg = new Image();
+            bgImg.src = 'images/s' + i1 + 'bg.jpg';
+            bgImg.onerror = function(idx) {
+                return function() {
+                    console.warn('Could not load images/s' + idx + 'bg.jpg, falling back to PNG/JPG uppercase');
+                };
+            }(i1);
+
+            scratchers[i].addEventListener('imagesloaded', onScratcherLoaded);
+            scratchers[i].setImages('images/s' + i1 + 'bg.jpg', 'images/foreground.jpg');
+        }
+       
+        if (scratchers[0]) scratchers[0].addEventListener('scratchesended', scratcher1Changed);
+        if (scratchers[1]) scratchers[1].addEventListener('scratchesended', scratcher2Changed);
+        if (scratchers[3]) scratchers[3].addEventListener('scratchesended', scratcher3Changed);
+        if (scratchers[4]) scratchers[4].addEventListener('scratchesended', scratcher4Changed);
+        if (scratchers[5]) scratchers[5].addEventListener('scratchesended', scratcher5Changed);
+        if (scratchers[6]) scratchers[6].addEventListener('scratchesended', scratcher6Changed);
+        
+        var canvas = document.getElementById('scratcher1');
+        if (canvas) {
+            canvas.onmousemove = null;
+        }
+    };
+    
+    $(function() {
+        if (supportsCanvas()) {
+            initPage();
+        } else {
+            $('#scratcher-box').hide();
+            $('#lamebrowser').show();
+        }
+    });
+    
+})();
